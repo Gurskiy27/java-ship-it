@@ -7,48 +7,97 @@ import java.util.TreeMap;
 
 public class Timetable {
 
+    // День недели -> время -> список тренировок
     private Map<DayOfWeek, TreeMap<TimeOfDay, List<TrainingSession>>> timetable;
+
+    // День недели -> все тренировки этого дня,
+    // уже отсортированные по времени
+    private Map<DayOfWeek, List<TrainingSession>> allSessionsForDay;
 
     public Timetable() {
         timetable = new HashMap<>();
+        allSessionsForDay = new HashMap<>();
 
         Comparator<TimeOfDay> timeComparator = (time1, time2) -> {
             if (time1.getHours() != time2.getHours()) {
-                return Integer.compare(time1.getHours(), time2.getHours());
+                return Integer.compare(
+                        time1.getHours(),
+                        time2.getHours()
+                );
             }
 
-            return Integer.compare(time1.getMinutes(), time2.getMinutes());
+            return Integer.compare(
+                    time1.getMinutes(),
+                    time2.getMinutes()
+            );
         };
 
         for (DayOfWeek dayOfWeek : DayOfWeek.values()) {
-            timetable.put(dayOfWeek, new TreeMap<>(timeComparator));
+            timetable.put(
+                    dayOfWeek,
+                    new TreeMap<>(timeComparator)
+            );
+
+            allSessionsForDay.put(
+                    dayOfWeek,
+                    new ArrayList<>()
+            );
         }
     }
 
-    public void addNewTrainingSession(TrainingSession trainingSession) {
-        DayOfWeek dayOfWeek = trainingSession.getDayOfWeek();
-        TimeOfDay timeOfDay = trainingSession.getTimeOfDay();
+    public void addNewTrainingSession(
+            TrainingSession trainingSession) {
 
+        DayOfWeek dayOfWeek =
+                trainingSession.getDayOfWeek();
+
+        TimeOfDay timeOfDay =
+                trainingSession.getTimeOfDay();
+
+        // Добавляем тренировку в TreeMap
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule =
                 timetable.get(dayOfWeek);
 
         List<TrainingSession> sessions =
-                daySchedule.computeIfAbsent(timeOfDay, key -> new ArrayList<>());
+                daySchedule.computeIfAbsent(
+                        timeOfDay,
+                        key -> new ArrayList<>()
+                );
 
         sessions.add(trainingSession);
-    }
 
-    public List<TrainingSession> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {
-        List<TrainingSession> result = new ArrayList<>();
+        // Добавляем тренировку в список всех тренировок дня
+        // и сразу поддерживаем сортировку по времени.
+        List<TrainingSession> allSessions =
+                allSessionsForDay.get(dayOfWeek);
 
-        TreeMap<TimeOfDay, List<TrainingSession>> daySchedule =
-                timetable.get(dayOfWeek);
+        int insertPosition = 0;
 
-        for (TimeOfDay timeOfDay : daySchedule.navigableKeySet()) {
-            result.addAll(daySchedule.get(timeOfDay));
+        while (insertPosition < allSessions.size()) {
+
+            TrainingSession currentSession =
+                    allSessions.get(insertPosition);
+
+            TimeOfDay currentTime =
+                    currentSession.getTimeOfDay();
+
+            if (compareTime(timeOfDay, currentTime) < 0) {
+                break;
+            }
+
+            insertPosition++;
         }
 
-        return result;
+        allSessions.add(insertPosition, trainingSession);
+    }
+
+    public List<TrainingSession> getTrainingSessionsForDay(
+            DayOfWeek dayOfWeek) {
+
+        // O(1)
+        return new ArrayList<>(
+                allSessionsForDay.get(dayOfWeek)
+        );
     }
 
     public List<TrainingSession> getTrainingSessionsForDayAndTime(
@@ -58,7 +107,8 @@ public class Timetable {
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule =
                 timetable.get(dayOfWeek);
 
-        List<TrainingSession> sessions = daySchedule.get(timeOfDay);
+        List<TrainingSession> sessions =
+                daySchedule.get(timeOfDay);
 
         if (sessions == null) {
             return new ArrayList<>();
@@ -66,14 +116,20 @@ public class Timetable {
 
         return new ArrayList<>(sessions);
     }
+
     public List<CounterOfTrainings> getCountByCoaches() {
-        Map<String, CounterOfTrainings> counters = new HashMap<>();
+
+        Map<String, CounterOfTrainings> counters =
+                new HashMap<>();
 
         for (DayOfWeek dayOfWeek : DayOfWeek.values()) {
+
             TreeMap<TimeOfDay, List<TrainingSession>> daySchedule =
                     timetable.get(dayOfWeek);
 
-            for (List<TrainingSession> sessions : daySchedule.values()) {
+            for (List<TrainingSession> sessions :
+                    daySchedule.values()) {
+
                 for (TrainingSession session : sessions) {
 
                     Coach coach = session.getCoach();
@@ -84,14 +140,21 @@ public class Timetable {
                             + " "
                             + coach.getMiddleName();
 
-                    CounterOfTrainings counter = counters.get(coachKey);
+                    CounterOfTrainings counter =
+                            counters.get(coachKey);
 
                     if (counter == null) {
+
                         counters.put(
                                 coachKey,
-                                new CounterOfTrainings(coach, 1)
+                                new CounterOfTrainings(
+                                        coach,
+                                        1
+                                )
                         );
+
                     } else {
+
                         counters.put(
                                 coachKey,
                                 new CounterOfTrainings(
@@ -108,11 +171,30 @@ public class Timetable {
                 new ArrayList<>(counters.values());
 
         result.sort(
-                Comparator.comparingInt(CounterOfTrainings::getCount)
-                        .reversed()
+                Comparator.comparingInt(
+                        CounterOfTrainings::getCount
+                ).reversed()
         );
 
         return result;
     }
-}
 
+    // Сравнивает два объекта TimeOfDay
+    // по часам и минутам.
+    private int compareTime(
+            TimeOfDay time1,
+            TimeOfDay time2) {
+
+        if (time1.getHours() != time2.getHours()) {
+            return Integer.compare(
+                    time1.getHours(),
+                    time2.getHours()
+            );
+        }
+
+        return Integer.compare(
+                time1.getMinutes(),
+                time2.getMinutes()
+        );
+    }
+}
