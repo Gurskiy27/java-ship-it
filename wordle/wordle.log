@@ -1,0 +1,4 @@
+Игра создана. | remainingAttempts=6 | finished=false | won=false | attempts=[]
+Ход: ведро, результат: ----^ | remainingAttempts=5 | finished=false | won=false | attempts=[ведро]
+Ход: герой, результат: ^--+- | remainingAttempts=4 | finished=false | won=false | attempts=[ведро, герой]
+Ход: сапог, результат: +++++ | remainingAttempts=3 | finished=true | won=true | attempts=[ведро, герой, сапог]
